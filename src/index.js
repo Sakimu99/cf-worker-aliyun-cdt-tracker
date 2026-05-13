@@ -34,35 +34,42 @@ async function handleSchedule(env) {
     return;
   }
 
+  const thresholdGB = Number(env.TRAFFIC_THRESHOLD_GB) || 180;
+
   try {
     const trafficInfo = await getInstanceUsedTrafficGB(env, ECS_INSTANCE_ID);
-    if (trafficInfo.isMatched) {
-      console.log(`CDT Used Traffic for ECS ${ECS_INSTANCE_ID}: ${trafficInfo.trafficGB.toFixed(2)} GB`);
-    } else {
-      console.log(`CDT Used Traffic (fallback total) for ECS ${ECS_INSTANCE_ID}: ${trafficInfo.trafficGB.toFixed(2)} GB`);
-    }
+    const usedGB = trafficInfo.trafficGB;
+    console.log(`CDT Used Traffic for ECS ${ECS_INSTANCE_ID}: ${usedGB.toFixed(2)} GB / ${thresholdGB} GB threshold`);
 
     const instanceStatus = await getEcsStatus(env, ECS_INSTANCE_ID);
     console.log(`ECS Instance ${ECS_INSTANCE_ID} Status: ${instanceStatus}`);
 
-    if (instanceStatus === "Running" || instanceStatus === "Starting") {
-      console.log("Instance already running.");
+    if (usedGB >= thresholdGB) {
+      console.log(`Traffic exceeded threshold (${usedGB.toFixed(2)} >= ${thresholdGB}).`);
+      if (instanceStatus === "Running" || instanceStatus === "Starting") {
+        console.log("Stopping instance...");
+        await stopEcsInstance(env, ECS_INSTANCE_ID);
+      } else if (instanceStatus === "Stopped") {
+        console.log("Instance already stopped.");
+      } else if (instanceStatus === "Stopping") {
+        console.log("Instance already stopping.");
+      }
       return;
     }
 
+    // Traffic is under threshold
+    console.log(`Traffic within limit (${usedGB.toFixed(2)} < ${thresholdGB}).`);
     if (instanceStatus === "Stopped") {
-      console.log("Instance stopped. Starting...");
+      console.log("Starting instance...");
       await startEcsInstance(env, ECS_INSTANCE_ID);
-      return;
-    }
-
-    if (instanceStatus === "Stopping") {
+    } else if (instanceStatus === "Running") {
+      console.log("Instance already running.");
+    } else if (instanceStatus === "Stopping") {
       console.log("Instance stopping. Waiting...");
-      return;
+    } else {
+      console.log(`Instance abnormal state (${instanceStatus}). Rebooting...`);
+      await rebootEcsInstance(env, ECS_INSTANCE_ID);
     }
-
-    console.log(`Instance abnormal state (${instanceStatus}). Rebooting...`);
-    await rebootEcsInstance(env, ECS_INSTANCE_ID);
 
   } catch (error) {
     console.error("Error in execution:", error);
@@ -145,6 +152,18 @@ async function startEcsInstance(env, instanceId) {
     Version: '2014-05-26',
     RegionId: env.REGION_ID,
     InstanceId: instanceId
+  };
+
+  return await requestAliyun(env, `ecs.${env.REGION_ID}.aliyuncs.com`, params);
+}
+
+async function stopEcsInstance(env, instanceId) {
+  const params = {
+    Action: 'StopInstance',
+    Version: '2014-05-26',
+    RegionId: env.REGION_ID,
+    InstanceId: instanceId,
+    ForceStop: 'false'
   };
 
   return await requestAliyun(env, `ecs.${env.REGION_ID}.aliyuncs.com`, params);
