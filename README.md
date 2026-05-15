@@ -2,65 +2,65 @@
 ai_level: low
 ---
 
-# 阿里云CDT跟踪器与ECS控制（Cloudflare Worker）
+# 阿里云 CDT 流量跟踪与 ECS 控制（Cloudflare Worker）
 
-该项目通过Cron Triggers在Cloudflare Workers上运行阿里云ECS控制逻辑。
+本项目通过 Cloudflare Worker 的定时触发器运行阿里云 ECS 控制逻辑。
 
-它是原始`aly_ecs.py`脚本的无服务器替代方案。
+它是原始脚本 `aly_ecs.py` 的无服务器替代方案。
 
-## 先决条件
+## 前提条件
 
-- 已安装[Node.js](https://nodejs.org/)
-- Cloudflare账户。
+- 已安装 [Node.js](https://nodejs.org/)
+- 拥有 Cloudflare 账号。
 
-## 设置
+## 设置步骤
 
 1. **安装依赖**
 
    ```bash
-npm 安装
+   npm install
    ```
 
-2. **配置机密**
+2. **配置密钥**
 
-   为了安全起见，请在Cloudflare中设置以下机密信息。不要将其提交到存储库中。
+   为保证安全，请在 Cloudflare 中设置以下密钥。切勿将其提交到代码仓库中。
 
    ```bash
    npx wrangler secret put ACCESS_KEY_ID
-   # 输入您的阿里云访问密钥ID
+   # 输入你的阿里云 Access Key ID
 
    npx wrangler secret put ACCESS_KEY_SECRET
-   # 输入您的阿里云访问密钥Secret
+   # 输入你的阿里云 Access Key Secret
 
    npx wrangler secret put REGION_ID
-   # 输入您的区域ID（例如：cn-hongkong）
+   # 输入你的地域 ID（例如：cn-hongkong）
 
    npx wrangler secret put ECS_INSTANCE_ID
-   # 输入您的ECS实例ID
+   # 输入你的 ECS 实例 ID
 
-   使用npx wrangler命令将TRAFFIC_THRESHOLD_GB作为机密保存
-   # 输入阈值（例如：180）。若未设置，则默认为180。
+   npx wrangler secret put TRAFFIC_THRESHOLD_GB
+   # 输入流量阈值（例如：180）。如不设置，默认值为 180。
    ```
 
 3. **部署**
 
    ```bash
-npx wrangler 部署
+   npx wrangler deploy
    ```
 
-## 配置
+## 配置说明
 
-- **计划**：默认情况下，工作进程每30分钟运行一次。您可以在`wrangler.toml`文件的`[triggers]`部分中进行修改。
+- **定时规则**: 默认情况下，Worker 每 30 分钟运行一次。你可以在`wrangler.toml`文件的`[triggers]`部分修改此设置。
   ```toml
-  [触发器]
+  [triggers]
   crons = ["*/30 * * * *"]
   ```
 
-## 开发
+## 开发调试
 
-- **本地测试（通过HTTP触发）**
+- **本地测试（通过 HTTP 触发）**
 
-   在开发过程中，你可以通过访问工作进程URL来手动触发逻辑，例如在使用`wrangler dev`时。
+   开发期间，你可以通过访问 Worker 的 URL 手动触发逻辑例如在使用`wrangler dev`时
 
   ```bash
   npx wrangler dev
