@@ -1,23 +1,22 @@
 /**
- * Aliyun CDT Tracker & ECS Control Worker
- * 
- * Required Environment Variables:
- * - ACCESS_KEY_ID: Aliyun Access Key ID
- * - ACCESS_KEY_SECRET: Aliyun Access Key Secret
- * - REGION_ID: ECS Region ID (e.g., cn-hongkong)
- * - ECS_INSTANCE_ID: ECS Instance ID
- * - TRAFFIC_THRESHOLD_GB: Traffic threshold in GB (default: 180)
+ * 阿里云 CDT 流量监控 & ECS 实例控制脚本
+ * * 必须配置的环境变量:
+ * - ACCESS_KEY_ID: 阿里云访问密钥 ID
+ * - ACCESS_KEY_SECRET: 阿里云访问密钥 Secret
+ * - REGION_ID: ECS 所在地域 ID (例如: cn-hongkong)
+ * - ECS_INSTANCE_ID: ECS 实例 ID
+ * - TRAFFIC_THRESHOLD_GB: 流量阈值 GB (默认: 180)
  */
 
 export default {
   async scheduled(event, env, ctx) {
-    console.log("Cron Triggered");
+    console.log("定时任务已触发");
     await handleSchedule(env);
   },
 
   async fetch(request, env, ctx) {
     await handleSchedule(env);
-    return new Response("Executed successfully", { status: 200 });
+    return new Response("执行成功", { status: 200 });
   }
 };
 
@@ -30,7 +29,7 @@ async function handleSchedule(env) {
   } = env;
 
   if (!ACCESS_KEY_ID || !ACCESS_KEY_SECRET || !REGION_ID || !ECS_INSTANCE_ID) {
-    console.error("Missing required environment variables.");
+    console.error("缺少必要的环境变量配置。");
     return;
   }
 
@@ -39,44 +38,44 @@ async function handleSchedule(env) {
   try {
     const trafficInfo = await getInstanceUsedTrafficGB(env, ECS_INSTANCE_ID);
     const usedGB = trafficInfo.trafficGB;
-    console.log(`CDT Used Traffic for ECS ${ECS_INSTANCE_ID}: ${usedGB.toFixed(2)} GB / ${thresholdGB} GB threshold`);
+    console.log(`实例 ${ECS_INSTANCE_ID} 的 CDT 已用流量: ${usedGB.toFixed(2)} GB / 阈值 ${thresholdGB} GB`);
 
     const instanceStatus = await getEcsStatus(env, ECS_INSTANCE_ID);
-    console.log(`ECS Instance ${ECS_INSTANCE_ID} Status: ${instanceStatus}`);
+    console.log(`ECS 实例 ${ECS_INSTANCE_ID} 当前状态: ${instanceStatus}`);
 
     if (usedGB >= thresholdGB) {
-      console.log(`Traffic exceeded threshold (${usedGB.toFixed(2)} >= ${thresholdGB}).`);
+      console.log(`流量已超出阈值 (${usedGB.toFixed(2)} >= ${thresholdGB})。`);
       if (instanceStatus === "Running" || instanceStatus === "Starting") {
-        console.log("Stopping instance...");
+        console.log("正在停止实例...");
         await stopEcsInstance(env, ECS_INSTANCE_ID);
       } else if (instanceStatus === "Stopped") {
-        console.log("Instance already stopped.");
+        console.log("实例已经处于停止状态。");
       } else if (instanceStatus === "Stopping") {
-        console.log("Instance already stopping.");
+        console.log("实例正在停止中。");
       }
       return;
     }
 
-    // Traffic is under threshold
-    console.log(`Traffic within limit (${usedGB.toFixed(2)} < ${thresholdGB}).`);
+    // 流量在限制范围内
+    console.log(`流量正常 (${usedGB.toFixed(2)} < ${thresholdGB})。`);
     if (instanceStatus === "Stopped") {
-      console.log("Starting instance...");
+      console.log("正在启动实例...");
       await startEcsInstance(env, ECS_INSTANCE_ID);
     } else if (instanceStatus === "Running") {
-      console.log("Instance already running.");
+      console.log("实例已在运行中。");
     } else if (instanceStatus === "Stopping") {
-      console.log("Instance stopping. Waiting...");
+      console.log("实例正在停止中，请稍候...");
     } else {
-      console.log(`Instance abnormal state (${instanceStatus}). Rebooting...`);
+      console.log(`实例处于非正常状态 (${instanceStatus})。正在尝试重启...`);
       await rebootEcsInstance(env, ECS_INSTANCE_ID);
     }
 
   } catch (error) {
-    console.error("Error in execution:", error);
+    console.error("执行出错:", error);
   }
 }
 
-// ================== ECS API ==================
+// ================== 阿里云 ECS API 接口 ==================
 
 async function getInstanceUsedTrafficGB(env, instanceId) {
   const params = {
@@ -140,7 +139,7 @@ async function getEcsStatus(env, instanceId) {
   const instances = result.Instances?.Instance || [];
 
   if (instances.length === 0) {
-    throw new Error("Instance not found");
+    throw new Error("未找到指定实例");
   }
 
   return instances[0].Status;
@@ -181,7 +180,7 @@ async function rebootEcsInstance(env, instanceId) {
   return await requestAliyun(env, `ecs.${env.REGION_ID}.aliyuncs.com`, params);
 }
 
-// ================== Core Request Logic ==================
+// ================== 核心请求逻辑 ==================
 
 async function requestAliyun(env, domain, params) {
   const method = 'POST';
@@ -212,7 +211,7 @@ async function requestAliyun(env, domain, params) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Aliyun API Error: ${response.status} ${response.statusText} - ${text}`);
+    throw new Error(`阿里云 API 报错: ${response.status} ${response.statusText} - ${text}`);
   }
 
   return await response.json();
