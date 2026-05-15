@@ -2,65 +2,65 @@
 ai_level: low
 ---
 
-# Aliyun CDT Tracker & ECS Control (Cloudflare Worker)
+# 阿里云 CDT 流量跟踪与 ECS 控制（Cloudflare Worker）
 
-This project runs Aliyun ECS control logic on Cloudflare Workers through Cron Triggers.
+本项目通过 Cloudflare Worker 的定时触发器运行阿里云 ECS 控制逻辑。
 
-It is a serverless replacement for the original `aly_ecs.py` script.
+它是原始脚本 `aly_ecs.py` 的无服务器替代方案。
 
-## Prerequisites
+## 前提条件
 
-- [Node.js](https://nodejs.org/) installed
-- Cloudflare Account.
+- 已安装 [Node.js](https://nodejs.org/)
+- 拥有 Cloudflare 账号。
 
-## Setup
+## 设置步骤
 
-1. **Install Dependencies**
+1. **安装依赖**
 
    ```bash
    npm install
    ```
 
-2. **Configure Secrets**
+2. **配置密钥**
 
-   For security, set the following secrets in Cloudflare. Do not commit them to the repository.
+   为保证安全，请在 Cloudflare 中设置以下密钥。切勿将其提交到代码仓库中。
 
    ```bash
    npx wrangler secret put ACCESS_KEY_ID
-   # Enter your Aliyun Access Key ID
+   # 输入你的阿里云 Access Key ID
 
    npx wrangler secret put ACCESS_KEY_SECRET
-   # Enter your Aliyun Access Key Secret
+   # 输入你的阿里云 Access Key Secret
 
    npx wrangler secret put REGION_ID
-   # Enter your region ID (for example: cn-hongkong)
+   # 输入你的地域 ID（例如：cn-hongkong）
 
    npx wrangler secret put ECS_INSTANCE_ID
-   # Enter your ECS Instance ID
+   # 输入你的 ECS 实例 ID
 
    npx wrangler secret put TRAFFIC_THRESHOLD_GB
-   # Enter the threshold (for example: 180). The default is 180 if not set.
+   # 输入流量阈值（例如：180）。如不设置，默认值为 180。
    ```
 
-3. **Deploy**
+3. **部署**
 
    ```bash
    npx wrangler deploy
    ```
 
-## Configuration
+## 配置说明
 
-- **Schedule**: By default, the worker runs every 30 minutes. You can change this in `wrangler.toml` under `[triggers]`.
+- **定时规则**: 默认情况下，Worker 每 30 分钟运行一次。你可以在`wrangler.toml`文件的`[triggers]`部分修改此设置。
   ```toml
   [triggers]
   crons = ["*/30 * * * *"]
   ```
 
-## Development
+## 开发调试
 
-- **Local Test (Trigger via HTTP)**
+- **本地测试（通过 HTTP 触发）**
 
-   During development, you can trigger the logic manually by visiting the worker URL, for example while using `wrangler dev`.
+   开发期间，你可以通过访问 Worker 的 URL 手动触发逻辑例如在使用`wrangler dev`时
 
   ```bash
   npx wrangler dev
