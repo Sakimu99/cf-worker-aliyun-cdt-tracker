@@ -16,4 +16,4 @@ enabled = true
 invocation_logs = true
 
 [triggers]
-crons = ["*/30 * * *"] # 每1分钟运行一次，可根据需要调整
+crons = ["*/30 * * * *"] # 每1分钟运行一次，可根据需要调整
